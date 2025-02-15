@@ -27,7 +27,7 @@ pub fn main() {
     }
   }
   let app = lustre.simple(init, update, view(_, store))
-  let assert Ok(_) = lustre.start(app, "#app", #(store, 1))
+  let assert Ok(_) = lustre.start(app, "#app", #(store, 0))
 
   Nil
 }
