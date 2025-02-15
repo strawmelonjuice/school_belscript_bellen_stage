@@ -232,7 +232,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
       html.main(
         [
           attribute.class(
-            "self-center m-l-auto m-r-auto w-3/4 ring-offset-rose-950 text-base",
+            "self-center m-l-auto m-r-auto w-3/4 md:w-fit ring-offset-rose-950 text-base",
           ),
         ],
         [
@@ -288,7 +288,7 @@ fn view_start(model: Model) {
   html.main(
     [
       attribute.class(
-        "self-center m-l-auto m-r-auto w-3/4 ring-offset-rose-950 text-base",
+        "self-center m-l-auto m-r-auto w-3/4 md:w-fit ring-offset-rose-950 text-base",
       ),
     ],
     [
