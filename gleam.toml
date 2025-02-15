@@ -1,6 +1,7 @@
 name = "beslisboom_bellen_stage"
 version = "1.0.0"
 target = "javascript"
+licence = ["AGPL-3.0"]
 
 [dependencies]
 lustre = "4.6.4"
