@@ -12,7 +12,7 @@ companies for internships, because that one seems to be hardest.
 ## Usage
 
 I pre-generate with Lustre, so GitHub Pages will do the serving. Should be available at:
-<> <-- todo: insert link here.
+<https://strawmelonjuice.github.io/school_beslisboom_bellen_stage/>
 
 ## Development
 
