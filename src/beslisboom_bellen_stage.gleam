@@ -35,7 +35,7 @@ pub fn main() {
 
 type Model {
   Model(
-    pad: List(String),
+    pad: List(Int),
     naam: Option(String),
     datum_gemaild: Option(String),
     antwoord_opties: List(#(String, Int)),
@@ -48,7 +48,7 @@ type Model {
 
 fn encode_model(model: Model) -> json.Json {
   json.object([
-    #("pad", json.array(model.pad, json.string)),
+    #("pad", json.array(model.pad, json.int)),
     #("naam", case model.naam {
       None -> json.null()
       Some(value) -> json.string(value)
@@ -77,7 +77,7 @@ fn encode_model(model: Model) -> json.Json {
 }
 
 fn model_decoder() -> decode.Decoder(Model) {
-  use pad <- decode.field("pad", decode.list(decode.string))
+  use pad <- decode.field("pad", decode.list(decode.int))
   use naam <- decode.field("naam", decode.optional(decode.string))
   use datum_gemaild <- decode.field(
     "datum_gemaild",
@@ -128,7 +128,7 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
     1 -> {
       // Debugging mode
       Model(
-        pad: ["start", "0"],
+        pad: [0],
         naam: Some("Bert Pieters"),
         datum_gemaild: Some("2003-02-10"),
         antwoord_opties: [#("Ja", 1), #("Nee", 2), #("Weet ik niet", 3)],
@@ -191,7 +191,7 @@ fn update(model: Model, msg: Msg) -> Model {
           ]
           Model(
             ..model,
-            pad: ["start", "0"],
+            pad: [0],
             huidig_script: te_zeggen,
             antwoord_opties: antwoorden_daarop,
           )
@@ -233,11 +233,11 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
             // floating button to reset the form
             [
               attribute.class(
-                "absolute top-2 right-2 m-2 btn btn-xs btn-warning",
+                "absolute top-2 right-2 h-[6vh] w-[6vh] m-2 btn btn-circle btn-sm  btn-warning fa-solid fa-rotate-left text-lg",
               ),
               event.on_click(GebruikerResetMsg),
             ],
-            [html.i([attribute.class("fa-solid fa-rotate-left w-30")], [])],
+            [],
           ),
           case model.ballon {
             True -> {
@@ -264,7 +264,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
                   html.button(
                     [
                       event.on_click(AnswerredMsg(optie.1)),
-                      attribute.class("btn btn-xs"),
+                      attribute.class("btn btn-xs rounded-lg"),
                     ],
                     [element.text(optie.0)],
                   )
@@ -361,13 +361,11 @@ fn view_start(model: Model) {
                   "w-full btn btn-bordered btn-outline btn-success",
                 ),
                 event.on_click(AnswerredMsg(0)),
-                attribute.type_("submit"),
               ]
               _, _, _, _ -> [
                 // Formulier is niet ingevuld, laat gebruiker niet starten
                 attribute.class("w-full btn btn-disabled btn-ghost"),
                 attribute.disabled(True),
-                attribute.type_("submit"),
               ]
             }
           },
