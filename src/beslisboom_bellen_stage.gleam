@@ -129,10 +129,10 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
       // Debugging mode
       Model(
         pad: [],
-        naam: Some("Bert Pieters"),
+        naam: Some(willekeurige_naam()),
         datum_gemaild: Some("2025-02-10"),
-        antwoord_opties: [#("Ja", 1), #("Nee", 2), #("Weet ik niet", 3)],
-        huidig_script: "Goedemiddag. U spreekt met Bert Pieters. Ik ben student op het Koning Willem I College en heb uw bedrijf op 2003-02-10 per email benaderd. Kunt u mij vertellen of deze email is ontvangen?",
+        antwoord_opties: [],
+        huidig_script: "",
         emailadresgebruikt: Some("Jouwemail@gmail.com"),
         schoolnaam: Some("het Koning Willem I College"),
         ballon: True,
@@ -296,7 +296,7 @@ fn view_start(model: Model) {
         html.label([attribute.class("join-item"), attribute.for("naam")], [
           element.text("Je naam?"),
           html.input([
-            attribute.placeholder("Bert Pieters"),
+            attribute.placeholder(willekeurige_naam()),
             attribute.id("naam"),
             attribute.class("w-full input input-bordered"),
             attribute.type_("name"),
@@ -455,4 +455,43 @@ fn datum_als_gesproken(datum: birl.Time) {
           }
       }
   }
+}
+
+// Miscelaneous functions ---------------------------------------------------------------------
+
+fn willekeurige_naam() {
+  [
+    "Bert Pieters", "Jan Jansen", "Piet de Boer", "Karin van der Pol",
+    "Jan van der Pol", "Anneke Pieters", "Johanna de Vries", "Jannie Jansen",
+    "Henriette de Vries", "Klaartje Jansen", "Karin de Boer", "Jane Doe",
+    "Alice Johnson", "Bob Brown", "Charlie White", "David Black",
+    "Aisha Ten-Bosch", "Paula Stevens", "Liam Smith", "Olivia Johnson",
+    "Noah Williams", "Emma Brown", "Oliver Jones", "Ava Garcia",
+    "Elijah Martinez", "Sophia Rodriguez", "Lucas Hernandez", "Isabella Lopez",
+    "Mason Gonzalez", "Mia Wilson", "Ethan Anderson", "Amelia Thomas",
+    "James Taylor", "Harper Moore", "Benjamin Jackson", "Evelyn Martin",
+    "Alexander Lee", "Abigail Perez", "Henry Thompson", "Emily White",
+    "Sebastian Harris", "Elizabeth Sanchez", "Jack Clark", "Sofia Ramirez",
+    "Owen Lewis", "Avery Robinson", "Samuel Walker", "Ella Young",
+    "Matthew Allen", "Scarlett King", "Joseph Wright", "Grace Scott",
+    "Levi Green", "Chloe Adams", "Mateo Baker", "Victoria Nelson", "David Hill",
+    "Riley Carter", "John Rivera", "Aria Mitchell", "Wyatt Roberts",
+    "Lily Turner", "Carter Phillips", "Aubrey Campbell", "Julian Parker",
+    "Zoey Evans", "Grayson Edwards", "Kai Nakamura", "Zara Patel",
+    "Finn O'Malley", "Luna Kowalski", "Nico Rossi", "Freya Müller",
+    "Soren Larsen", "Anika Gupta", "Rafael Silva", "Yara Haddad",
+    "Dante Moretti", "Ines Fernandez", "Kian Novak", "Leila Chen", "Milo Petrov",
+    "Saskia van Dijk", "Arjun Singh", "Elara Volkov", "Tariq Al-Farsi",
+    "Nina Yamamoto", "Bodhi Nguyen", "Zaina Rahman", "Elias Svensson",
+    "Mira Kuznetsov", "Orion Varga", "Ayla Demir", "Rohan Mehta",
+    "Sienna Laurent", "Koa Tanaka", "Liora Cohen", "Thiago Costa",
+    "Amara Okafor", "Zane Malik", "Soraya Bakker", "Eamon Gallagher",
+    "Nadia Ivanov", "Reza Karim", "Talia Abramov", "Iker Delgado",
+    "Suriya Chandra", "Luka Horvat", "Mara Novak", "Jasper van Leeuwen",
+    "Nia Papadopoulos", "Ravi Kapoor", "Saskia Müller", "Elior Ben-David",
+    "Zofia Nowak", "Aksel Hansen", "Mina Kim",
+  ]
+  |> list.shuffle()
+  |> list.first()
+  |> result.unwrap("Bert Pieters")
 }
