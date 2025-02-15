@@ -348,10 +348,7 @@ fn view_start(model: Model) {
             attribute.class("w-full input input-bordered"),
             attribute.type_("name"),
             attribute.value({ model.naam |> option.unwrap("") }),
-            event.on_input(fn(a) {
-              a |> io.debug()
-              NameFilledInMsg("")
-            }),
+            event.on_input(NameFilledInMsg),
           ]),
         ]),
         html.label(
