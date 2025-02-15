@@ -128,7 +128,7 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
     1 -> {
       // Debugging mode
       Model(
-        pad: [0],
+        pad: [],
         naam: Some("Bert Pieters"),
         datum_gemaild: Some("2003-02-10"),
         antwoord_opties: [#("Ja", 1), #("Nee", 2), #("Weet ik niet", 3)],
@@ -174,14 +174,22 @@ fn update(model: Model, msg: Msg) -> Model {
     AnswerredMsg(answer) ->
       case model.pad, answer {
         [], _ -> {
+          let moment_van_mailen =
+            model.datum_gemaild
+            |> option.unwrap(datum_vandaag())
+            |> datum_terug_op_volgorde()
+            |> birl.from_naive()
+            |> io.debug()
+            |> result.unwrap(birl.now())
+            |> datum_als_gesproken()
           let te_zeggen =
             begroeting()
             <> ". U spreekt met "
             <> model.naam |> option.unwrap("[naam]")
             <> ". Ik ben student op "
             <> model.schoolnaam |> option.unwrap("[schoolnaam]")
-            <> " en heb uw bedrijf op "
-            <> model.datum_gemaild |> option.unwrap("[datum gemaild]")
+            <> " en heb uw bedrijf "
+            <> moment_van_mailen
             <> " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?"
 
           let antwoorden_daarop = [
@@ -225,7 +233,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
       html.main(
         [
           attribute.class(
-            "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-base",
+            "self-center m-l-auto m-r-auto w-3/4 ring-offset-rose-950 text-base",
           ),
         ],
         [
@@ -281,7 +289,7 @@ fn view_start(model: Model) {
   html.main(
     [
       attribute.class(
-        "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-base",
+        "self-center m-l-auto m-r-auto w-3/4 ring-offset-rose-950 text-base",
       ),
     ],
     [
@@ -406,4 +414,46 @@ fn datum_vandaag() {
   let splitted = splitted |> list.rest() |> result.unwrap(["15"])
   let day = splitted |> list.last() |> result.unwrap("15")
   day <> "-" <> month <> "-" <> year
+}
+
+fn datum_terug_op_volgorde(datum: String) {
+  let splitted = datum |> string.split("-") |> list.reverse()
+  case
+    splitted |> list.first() |> result.unwrap("2025-02-15") |> string.length()
+  {
+    4 -> splitted |> string.join("-")
+    _ -> datum
+  }
+}
+
+fn datum_als_gesproken(datum: birl.Time) {
+  let uren_sinds_datum =
+    { birl.to_unix(birl.now()) - birl.to_unix(datum) } / 3600
+  let dow = birl.weekday(datum)
+  case uren_sinds_datum {
+    0 -> "vandaag"
+    24 -> "gisteren"
+    48 -> "eergisteren"
+    _ ->
+      case uren_sinds_datum / 24 |> io.debug() {
+        1 -> "gisteren"
+        2 -> "eergisteren"
+        3 -> "3 dagen geleden"
+        dagen_sinds_datum ->
+          case dagen_sinds_datum < 8 {
+            True ->
+              "afgelopen "
+              <> case dow {
+                birl.Mon -> "maandag"
+                birl.Tue -> "dinsdag"
+                birl.Wed -> "woensdag"
+                birl.Thu -> "donderdag"
+                birl.Fri -> "vrijdag"
+                birl.Sat -> "zaterdag"
+                birl.Sun -> "zondag"
+              }
+            False -> "op " <> datum |> birl.to_naive_date_string()
+          }
+      }
+  }
 }
