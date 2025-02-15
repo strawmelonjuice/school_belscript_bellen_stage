@@ -26,7 +26,7 @@ pub fn main() {
     }
   }
   let app = lustre.simple(init, update, view(_, store))
-  let assert Ok(_) = lustre.start(app, "#app", #(store, 0))
+  let assert Ok(_) = lustre.start(app, "#app", #(store, 1))
 
   Nil
 }
@@ -130,7 +130,7 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
       Model(
         pad: [],
         naam: Some("Bert Pieters"),
-        datum_gemaild: Some("2003-02-10"),
+        datum_gemaild: Some("2025-02-10"),
         antwoord_opties: [#("Ja", 1), #("Nee", 2), #("Weet ik niet", 3)],
         huidig_script: "Goedemiddag. U spreekt met Bert Pieters. Ik ben student op het Koning Willem I College en heb uw bedrijf op 2003-02-10 per email benaderd. Kunt u mij vertellen of deze email is ontvangen?",
         emailadresgebruikt: Some("Jouwemail@gmail.com"),
@@ -179,7 +179,6 @@ fn update(model: Model, msg: Msg) -> Model {
             |> option.unwrap(datum_vandaag())
             |> datum_terug_op_volgorde()
             |> birl.from_naive()
-            |> io.debug()
             |> result.unwrap(birl.now())
             |> datum_als_gesproken()
           let te_zeggen =
@@ -431,11 +430,11 @@ fn datum_als_gesproken(datum: birl.Time) {
     { birl.to_unix(birl.now()) - birl.to_unix(datum) } / 3600
   let dow = birl.weekday(datum)
   case uren_sinds_datum {
-    0 -> "vandaag"
-    24 -> "gisteren"
-    48 -> "eergisteren"
+    j if j < 24 -> "vandaag"
+    j if j < 48 -> "gisteren"
+    j if j < 50 -> "eergisteren"
     _ ->
-      case uren_sinds_datum / 24 |> io.debug() {
+      case uren_sinds_datum / 24 {
         1 -> "gisteren"
         2 -> "eergisteren"
         3 -> "3 dagen geleden"
