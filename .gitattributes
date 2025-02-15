@@ -1,1 +1,2 @@
 priv/static/* linguist-vendored
+./priv/static/fontawesome-free-6.7.2-web/css/*.css linguist-vendored
