@@ -2402,20 +2402,6 @@ function property(name, value3) {
 function on(name, handler) {
   return new Event("on" + name, handler);
 }
-function style(properties) {
-  return attribute(
-    "style",
-    fold(
-      properties,
-      "",
-      (styles, _use1) => {
-        let name$1 = _use1[0];
-        let value$1 = _use1[1];
-        return styles + name$1 + ":" + value$1 + ";";
-      }
-    )
-  );
-}
 function class$(name) {
   return attribute("class", name);
 }
@@ -3175,17 +3161,11 @@ function start2(app, selector, flags) {
 function main(attrs, children2) {
   return element("main", attrs, children2);
 }
-function blockquote(attrs, children2) {
-  return element("blockquote", attrs, children2);
-}
 function div(attrs, children2) {
   return element("div", attrs, children2);
 }
 function button(attrs, children2) {
   return element("button", attrs, children2);
-}
-function fieldset(attrs, children2) {
-  return element("fieldset", attrs, children2);
 }
 function input(attrs) {
   return element("input", attrs, toList([]));
@@ -3268,7 +3248,9 @@ function init2(_) {
 function view_start(model) {
   return main(
     toList([
-      class$("self-center w-1/6 ring-offset-rose-950 text-slate-600")
+      class$(
+        "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-slate-600"
+      )
     ]),
     toList([
       div(
@@ -3338,12 +3320,14 @@ function view_start(model) {
               let $1 = model.naam;
               if ($ instanceof Some && $1 instanceof Some) {
                 return toList([
-                  class$("w-full btn btn-bordered"),
+                  class$(
+                    "w-full btn btn-bordered btn-outline btn-success"
+                  ),
                   on_click(new FormFilledInMsg())
                 ]);
               } else {
                 return toList([
-                  class$("w-full btn btn-disabled"),
+                  class$("w-full btn btn-disabled btn-ghost"),
                   disabled(true)
                 ]);
               }
@@ -3363,26 +3347,36 @@ function view(model) {
     return main(
       toList([
         class$(
-          "self-center w-1/6 ring-offset-rose-950 text-slate-600"
+          "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-slate-600"
         )
       ]),
       toList([
         div(
-          toList([]),
+          toList([class$("chat-end chat")]),
           toList([
-            blockquote(
-              toList([style(toList([["text-align", "center"]]))]),
+            div(
+              toList([class$("chat-bubble")]),
               toList([text(model.huidig_script)])
-            ),
-            fieldset(
-              toList([class$("join join-horizontal gap-6")]),
+            )
+          ])
+        ),
+        div(
+          toList([class$("chat-start chat")]),
+          toList([
+            div(
+              toList([
+                class$("join join-horizontal gap-4 chat-bubble")
+              ]),
               (() => {
                 let _pipe = model.antwoord_opties;
                 return map2(
                   _pipe,
                   (optie) => {
                     return button(
-                      toList([on_click(new AnswerredMsg(optie[1]))]),
+                      toList([
+                        on_click(new AnswerredMsg(optie[1])),
+                        class$("btn btn-xs")
+                      ]),
                       toList([text(optie[0])])
                     );
                   }
@@ -3490,19 +3484,21 @@ function update(model, msg) {
       {}
     );
   } else {
+    let te_zeggen = begroeting() + ". U spreekt met " + (() => {
+      let _pipe = model.naam;
+      return unwrap(_pipe, "[naam]");
+    })() + ". Ik ben student op het Koning Willem I College en heb uw bedrijf op " + (() => {
+      let _pipe = model.datum_gemaild;
+      return unwrap(_pipe, "[datum gemaild]");
+    })() + " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?";
+    let antwoorden_daarop = toList([["Ja", 1], ["Nee", 2], ["Weet ik niet", 3]]);
     let _record = model;
     return new Model2(
       toList(["start", "0"]),
       _record.naam,
       _record.datum_gemaild,
-      _record.antwoord_opties,
-      begroeting() + ". U spreekt met " + (() => {
-        let _pipe = model.naam;
-        return unwrap(_pipe, "[naam]");
-      })() + ". Ik ben student op het Koning Willem I College en heb uw bedrijf op " + (() => {
-        let _pipe = model.datum_gemaild;
-        return unwrap(_pipe, "[datum gemaild]");
-      })() + " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?"
+      antwoorden_daarop,
+      te_zeggen
     );
   }
 }

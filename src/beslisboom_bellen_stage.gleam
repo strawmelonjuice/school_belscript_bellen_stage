@@ -60,15 +60,20 @@ fn update(model: Model, msg: Msg) -> Model {
       Model(..model, pad: [], naam: None, datum_gemaild: None)
     AnswerredMsg(_) -> todo
     FormFilledInMsg -> {
+      let te_zeggen =
+        begroeting()
+        <> ". U spreekt met "
+        <> model.naam |> option.unwrap("[naam]")
+        <> ". Ik ben student op het Koning Willem I College en heb uw bedrijf op "
+        <> model.datum_gemaild |> option.unwrap("[datum gemaild]")
+        <> " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?"
+
+      let antwoorden_daarop = [#("Ja", 1), #("Nee", 2), #("Weet ik niet", 3)]
       Model(
         ..model,
         pad: ["start", "0"],
-        huidig_script: begroeting()
-          <> ". U spreekt met "
-          <> model.naam |> option.unwrap("[naam]")
-          <> ". Ik ben student op het Koning Willem I College en heb uw bedrijf op "
-          <> model.datum_gemaild |> option.unwrap("[datum gemaild]")
-          <> " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?",
+        huidig_script: te_zeggen,
+        antwoord_opties: antwoorden_daarop,
       )
     }
   }
@@ -83,22 +88,31 @@ fn view(model: Model) -> Element(Msg) {
       html.main(
         [
           attribute.class(
-            "self-center w-1/6 ring-offset-rose-950 text-slate-600",
+            "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-slate-600",
           ),
         ],
         [
-          html.div([], [
-            html.blockquote([attribute.style([#("text-align", "center")])], [
+          html.div([attribute.class("chat-end chat")], [
+            html.div([attribute.class("chat-bubble")], [
               element.text(model.huidig_script),
             ]),
-            html.fieldset([attribute.class("join join-horizontal gap-6")], {
-              model.antwoord_opties
-              |> list.map(fn(optie) {
-                html.button([event.on_click(AnswerredMsg(optie.1))], [
-                  element.text(optie.0),
-                ])
-              })
-            }),
+          ]),
+          html.div([attribute.class("chat-start chat")], [
+            html.div(
+              [attribute.class("join join-horizontal gap-4 chat-bubble")],
+              {
+                model.antwoord_opties
+                |> list.map(fn(optie) {
+                  html.button(
+                    [
+                      event.on_click(AnswerredMsg(optie.1)),
+                      attribute.class("btn btn-xs"),
+                    ],
+                    [element.text(optie.0)],
+                  )
+                })
+              },
+            ),
           ]),
         ],
       )
@@ -107,7 +121,11 @@ fn view(model: Model) -> Element(Msg) {
 
 fn view_start(model: Model) {
   html.main(
-    [attribute.class("self-center w-1/6 ring-offset-rose-950 text-slate-600")],
+    [
+      attribute.class(
+        "self-center m-l-auto m-r-auto max-w-3/4 ring-offset-rose-950 text-slate-600",
+      ),
+    ],
     [
       html.div([attribute.class("join join-vertical gap-6")], [
         html.label([attribute.class("join-item"), attribute.for("naam")], [
@@ -144,11 +162,13 @@ fn view_start(model: Model) {
           {
             case model.datum_gemaild, model.naam {
               Some(_), Some(_) -> [
-                attribute.class("w-full btn btn-bordered"),
+                attribute.class(
+                  "w-full btn btn-bordered btn-outline btn-success",
+                ),
                 event.on_click(FormFilledInMsg),
               ]
               _, _ -> [
-                attribute.class("w-full btn btn-disabled"),
+                attribute.class("w-full btn btn-disabled btn-ghost"),
                 attribute.disabled(True),
               ]
             }
