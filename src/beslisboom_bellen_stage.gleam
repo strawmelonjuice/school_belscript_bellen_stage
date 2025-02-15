@@ -25,8 +25,8 @@ pub fn main() {
       panic
     }
   }
-  let app = lustre.simple(init, update, view)
-  let assert Ok(_) = lustre.start(app, "#app", #(store, 1))
+  let app = lustre.simple(init, update, view(_, store))
+  let assert Ok(_) = lustre.start(app, "#app", #(store, 0))
 
   Nil
 }
@@ -184,8 +184,7 @@ fn update(model: Model, msg: Msg) -> Model {
 
 // VIEW ------------------------------------------------------------------------
 
-fn view(model: Model) -> Element(Msg) {
-  io.debug(model)
+fn view(model: Model, store: storage.Storage) -> Element(Msg) {
   case model.pad {
     [] -> view_start(model)
     _ ->
