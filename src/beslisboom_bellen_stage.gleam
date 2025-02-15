@@ -46,6 +46,36 @@ type Model {
   )
 }
 
+fn encode_model(model: Model) -> json.Json {
+  json.object([
+    #("pad", json.array(model.pad, json.string)),
+    #("naam", case model.naam {
+      None -> json.null()
+      Some(value) -> json.string(value)
+    }),
+    #("datum_gemaild", case model.datum_gemaild {
+      None -> json.null()
+      Some(value) -> json.string(value)
+    }),
+    #(
+      "antwoord_opties",
+      json.array(model.antwoord_opties, fn(value) {
+        json.preprocessed_array([json.string(value.0), json.int(value.1)])
+      }),
+    ),
+    #("huidig_script", json.string(model.huidig_script)),
+    #("emailadresgebruikt", case model.emailadresgebruikt {
+      None -> json.null()
+      Some(value) -> json.string(value)
+    }),
+    #("schoolnaam", case model.schoolnaam {
+      None -> json.null()
+      Some(value) -> json.string(value)
+    }),
+    #("ballon", json.bool(model.ballon)),
+  ])
+}
+
 fn model_decoder() -> decode.Decoder(Model) {
   use pad <- decode.field("pad", decode.list(decode.string))
   use naam <- decode.field("naam", decode.optional(decode.string))
@@ -185,6 +215,10 @@ fn update(model: Model, msg: Msg) -> Model {
 // VIEW ------------------------------------------------------------------------
 
 fn view(model: Model, store: storage.Storage) -> Element(Msg) {
+  encode_model(model)
+  |> json.to_string()
+  |> storage.set_item(store, "last_model", _)
+  |> result.unwrap(Nil)
   case model.pad {
     [] -> view_start(model)
     _ ->
