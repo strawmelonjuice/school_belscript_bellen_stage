@@ -42,7 +42,7 @@ jobs:
       - name: Fetch dependencies
         run: |
           bun install &&
-          gleam deps install
+          gleam deps download
       - name: Build
         run: gleam run -m lustre/dev build
       - name: Upload artifact
