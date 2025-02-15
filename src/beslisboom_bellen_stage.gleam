@@ -1,4 +1,5 @@
 import birl
+import gleam/bool
 import gleam/dynamic/decode
 import gleam/io
 import gleam/json
@@ -35,7 +36,7 @@ pub fn main() {
 
 type Model {
   Model(
-    pad: List(Int),
+    pad: Int,
     naam: Option(String),
     datum_gemaild: Option(String),
     antwoord_opties: List(#(String, Int)),
@@ -43,12 +44,14 @@ type Model {
     emailadresgebruikt: Option(String),
     schoolnaam: Option(String),
     ballon: Bool,
+    notes_open: Bool,
+    notes_value: String,
   )
 }
 
 fn encode_model(model: Model) -> json.Json {
   json.object([
-    #("pad", json.array(model.pad, json.int)),
+    #("pad", json.int(model.pad)),
     #("naam", case model.naam {
       None -> json.null()
       Some(value) -> json.string(value)
@@ -73,11 +76,13 @@ fn encode_model(model: Model) -> json.Json {
       Some(value) -> json.string(value)
     }),
     #("ballon", json.bool(model.ballon)),
+    #("notes_open", json.bool(model.notes_open)),
+    #("notes_value", json.string(model.notes_value)),
   ])
 }
 
 fn model_decoder() -> decode.Decoder(Model) {
-  use pad <- decode.field("pad", decode.list(decode.int))
+  use pad <- decode.field("pad", decode.int)
   use naam <- decode.field("naam", decode.optional(decode.string))
   use datum_gemaild <- decode.field(
     "datum_gemaild",
@@ -99,6 +104,8 @@ fn model_decoder() -> decode.Decoder(Model) {
   )
   use schoolnaam <- decode.field("schoolnaam", decode.optional(decode.string))
   use ballon <- decode.field("ballon", decode.bool)
+  use notes_open <- decode.field("notes_open", decode.bool)
+  use notes_value <- decode.field("notes_value", decode.string)
   decode.success(Model(
     pad:,
     naam:,
@@ -108,11 +115,13 @@ fn model_decoder() -> decode.Decoder(Model) {
     emailadresgebruikt:,
     schoolnaam:,
     ballon:,
+    notes_open:,
+    notes_value:,
   ))
 }
 
 const clean_model = Model(
-  pad: [],
+  pad: -1,
   antwoord_opties: [],
   naam: None,
   datum_gemaild: None,
@@ -120,6 +129,8 @@ const clean_model = Model(
   emailadresgebruikt: None,
   schoolnaam: Some("het Koning Willem I College"),
   ballon: True,
+  notes_open: False,
+  notes_value: "",
 )
 
 // INIT ------------------------------------------------------------------------
@@ -128,7 +139,7 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
     1 -> {
       // Debugging mode
       Model(
-        pad: [],
+        pad: -1,
         naam: Some(willekeurige_naam()),
         datum_gemaild: Some("2025-02-10"),
         antwoord_opties: [],
@@ -136,6 +147,8 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
         emailadresgebruikt: Some("Jouwemail@gmail.com"),
         schoolnaam: Some("het Koning Willem I College"),
         ballon: True,
+        notes_open: True,
+        notes_value: "",
       )
     }
     _ -> {
@@ -163,9 +176,19 @@ pub opaque type Msg {
   SchoolFilledInMsg(String)
   EmailAdressFilledInMsg(String)
   GebruikerResetMsg
+  NoteToggleMsg
+  NoteCloseMsg
+  NoteEditMsg(String)
 }
 
 fn update(model: Model, msg: Msg) -> Model {
+  let uh_oh =
+    Model(
+      ..model,
+      huidig_script: "Er is geen vervolg voor deze keuze, uh-oh.",
+      antwoord_opties: [],
+      ballon: False,
+    )
   case msg {
     NameFilledInMsg(naam) -> Model(..model, naam: Some(naam))
     DateFilledInMsg(datum_gemaild) ->
@@ -173,7 +196,7 @@ fn update(model: Model, msg: Msg) -> Model {
     GebruikerResetMsg -> clean_model
     AnswerredMsg(answer) ->
       case model.pad, answer {
-        [], _ -> {
+        -1, _ -> {
           let moment_van_mailen =
             model.datum_gemaild
             |> option.unwrap(datum_vandaag())
@@ -198,24 +221,37 @@ fn update(model: Model, msg: Msg) -> Model {
           ]
           Model(
             ..model,
-            pad: [0],
+            pad: 0,
             huidig_script: te_zeggen,
             antwoord_opties: antwoorden_daarop,
           )
         }
-        _, _ -> {
-          Model(
-            ..model,
-            huidig_script: "Er is nog geen vervolg voor deze keuze, uh-oh.",
-            antwoord_opties: [],
-            ballon: False,
-          )
+        0, a -> {
+          case a {
+            // Ja
+            1 ->
+              Model(
+                ..model,
+                huidig_script: "Ik heb geen reactie ontvangen. Kunt u mij vertellen wat de status is?",
+                antwoord_opties: [
+                  #("Wij hebben geen stageplaatsen", 1),
+                  #("Er wordt nog naar gekeken", 2),
+                ],
+                pad: 1,
+              )
+            _ -> uh_oh
+          }
         }
+        _, _ -> uh_oh
       }
     EmailAdressFilledInMsg(mail) ->
       Model(..model, emailadresgebruikt: Some(mail))
     SchoolFilledInMsg(schoolname) ->
       Model(..model, schoolnaam: Some(schoolname))
+    NoteEditMsg(new) -> Model(..model, notes_value: new)
+    NoteToggleMsg ->
+      Model(..model, notes_open: model.notes_open |> bool.negate())
+    NoteCloseMsg -> Model(..model, notes_open: False)
   }
 }
 
@@ -227,7 +263,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
   |> storage.set_item(store, "last_model", _)
   |> result.unwrap(Nil)
   case model.pad {
-    [] -> view_start(model)
+    -1 -> view_start(model)
     _ ->
       html.main(
         [
@@ -236,6 +272,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
           ),
         ],
         [
+          view_notepad(model),
           html.span(
             // floating button to reset the form
             [
@@ -263,20 +300,29 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
             html.div(
               case model.antwoord_opties {
                 [] -> []
-                _ -> [attribute.class("join join-horizontal gap-1 chat-bubble")]
+                _ -> [attribute.class(" chat-bubble")]
               },
-              {
-                model.antwoord_opties
-                |> list.map(fn(optie) {
-                  html.button(
-                    [
-                      event.on_click(AnswerredMsg(optie.1)),
-                      attribute.class("btn btn-xs rounded-lg"),
-                    ],
-                    [element.text(optie.0)],
-                  )
-                })
-              },
+              [
+                html.div(
+                  [
+                    attribute.class(
+                      "join join-horizontal gap-1 overflow-x-scroll",
+                    ),
+                  ],
+                  {
+                    model.antwoord_opties
+                    |> list.map(fn(optie) {
+                      html.button(
+                        [
+                          event.on_click(AnswerredMsg(optie.1)),
+                          attribute.class("join-item btn btn-xs rounded-lg"),
+                        ],
+                        [element.text(optie.0)],
+                      )
+                    })
+                  },
+                ),
+              ],
             ),
           ]),
         ],
@@ -292,6 +338,7 @@ fn view_start(model: Model) {
       ),
     ],
     [
+      view_notepad(model),
       html.div([attribute.class("join join-vertical gap-2")], [
         html.label([attribute.class("join-item"), attribute.for("naam")], [
           element.text("Je naam?"),
@@ -301,7 +348,10 @@ fn view_start(model: Model) {
             attribute.class("w-full input input-bordered"),
             attribute.type_("name"),
             attribute.value({ model.naam |> option.unwrap("") }),
-            event.on_input(NameFilledInMsg),
+            event.on_input(fn(a) {
+              a |> io.debug()
+              NameFilledInMsg("")
+            }),
           ]),
         ]),
         html.label(
@@ -376,10 +426,56 @@ fn view_start(model: Model) {
               ]
             }
           },
-          [element.text("Start")],
+          [element.text("Start met bellen")],
         ),
       ]),
     ],
+  )
+}
+
+// Left floating is a big notepad
+fn view_notepad(model: Model) {
+  html.section(
+    [
+      attribute.class("absolute top-2 left-2 w-fit"),
+      event.on_mouse_leave(NoteCloseMsg),
+    ],
+    [
+      html.span(
+        [
+          attribute.class(
+            "h-[6vh] w-[6vh] m-2 btn btn-circle btn-xs  btn-warning fa-solid fa-sticky-note text-lg z-[100] ",
+          ),
+          event.on_click(NoteToggleMsg),
+        ],
+        [],
+      ),
+    ]
+      |> list.append(case model.notes_open {
+        True -> [
+          html.div(
+            [
+              attribute.class(
+                " top-[12vh] left-0 w-[90vw] h-[80VH] m-0 md:w-[40VW] bg-white p-2",
+              ),
+            ],
+            [
+              html.textarea(
+                [
+                  attribute.style([#("word-break", "break-word")]),
+                  attribute.class(
+                    "w-full h-full input bg-accent text-accent-content input-bordered",
+                  ),
+                  attribute.value(model.notes_value),
+                  event.on_input(NoteEditMsg),
+                ],
+                "",
+              ),
+            ],
+          ),
+        ]
+        False -> []
+      }),
   )
 }
 
