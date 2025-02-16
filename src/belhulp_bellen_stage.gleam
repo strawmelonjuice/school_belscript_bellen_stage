@@ -397,6 +397,11 @@ fn view_start(model: Model) {
             ]),
           ],
         ),
+        html.small([attribute.class("text-sm")], [
+          element.text(
+            "Deze gegevens worden lokaal opgeslagen in je browser en niet gedeeld.",
+          ),
+        ]),
         html.button(
           [
             attribute.class("w-full btn btn-bordered"),
