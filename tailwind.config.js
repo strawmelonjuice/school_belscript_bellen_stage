@@ -1,5 +1,5 @@
 module.exports = {
-  content: ["./index.html", "./priv/static/beslisboom_bellen_stage.mjs"],
+  content: ["./index.html", "./priv/static/belhulp_bellen_stage.mjs"],
   plugins: [require("daisyui")],
   extend: {
     colors: {

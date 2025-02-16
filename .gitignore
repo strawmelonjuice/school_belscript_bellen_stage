@@ -3,5 +3,5 @@
 /build
 erl_crash.dump
 /node_modules
-/priv/static/beslisboom_bellen_stage.css
-/priv/static/beslisboom_bellen_stage.mjs
+/priv/static/belhulp_bellen_stage.css
+/priv/static/belhulp_bellen_stage.mjs

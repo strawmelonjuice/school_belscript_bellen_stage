@@ -613,7 +613,7 @@ fn stappen() {
   |> dict.insert(
     2,
     Step(
-      fn(model) {
+      fn(_model) {
         [
           "Oh dat is spijtig, mogelijk heb ik niet het juiste emailadres gebruikt?",
           "Kan ik mijn brief opnieuw sturen? Kunt u mij het adres noemen?",
