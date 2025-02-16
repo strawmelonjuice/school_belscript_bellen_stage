@@ -619,7 +619,7 @@ fn stappen() {
           "Kan ik mijn brief opnieuw sturen? Kunt u mij het adres noemen?",
         ]
       },
-      [#("Ja", 9), #("Nee", 7)],
+      [#("Ja", 6), #("Nee", 7)],
     ),
   )
   |> dict.insert(
