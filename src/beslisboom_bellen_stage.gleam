@@ -1,5 +1,6 @@
 import birl
 import gleam/bool
+import gleam/dict
 import gleam/dynamic/decode
 import gleam/io
 import gleam/json
@@ -40,7 +41,7 @@ type Model {
     naam: Option(String),
     datum_gemaild: Option(String),
     antwoord_opties: List(#(String, Int)),
-    huidig_script: String,
+    huidig_script: List(String),
     emailadresgebruikt: Option(String),
     schoolnaam: Option(String),
     ballon: Bool,
@@ -66,7 +67,7 @@ fn encode_model(model: Model) -> json.Json {
         json.preprocessed_array([json.string(value.0), json.int(value.1)])
       }),
     ),
-    #("huidig_script", json.string(model.huidig_script)),
+    #("huidig_script", json.array(model.huidig_script, json.string)),
     #("emailadresgebruikt", case model.emailadresgebruikt {
       None -> json.null()
       Some(value) -> json.string(value)
@@ -97,7 +98,7 @@ fn model_decoder() -> decode.Decoder(Model) {
       decode.success(#(a, b))
     }),
   )
-  use huidig_script <- decode.field("huidig_script", decode.string)
+  use huidig_script <- decode.field("huidig_script", decode.list(decode.string))
   use emailadresgebruikt <- decode.field(
     "emailadresgebruikt",
     decode.optional(decode.string),
@@ -125,7 +126,7 @@ const clean_model = Model(
   antwoord_opties: [],
   naam: None,
   datum_gemaild: None,
-  huidig_script: "",
+  huidig_script: [],
   emailadresgebruikt: None,
   schoolnaam: Some("het Koning Willem I College"),
   ballon: True,
@@ -143,7 +144,7 @@ fn init(vars: #(storage.Storage, Int)) -> Model {
         naam: Some(willekeurige_naam()),
         datum_gemaild: Some("2025-02-10"),
         antwoord_opties: [],
-        huidig_script: "",
+        huidig_script: [],
         emailadresgebruikt: Some("Jouwemail@gmail.com"),
         schoolnaam: Some("het Koning Willem I College"),
         ballon: True,
@@ -185,7 +186,7 @@ fn update(model: Model, msg: Msg) -> Model {
   let uh_oh =
     Model(
       ..model,
-      huidig_script: "Er is geen vervolg voor deze keuze, uh-oh.",
+      huidig_script: ["Er is geen vervolg voor deze keuze, uh-oh."],
       antwoord_opties: [],
       ballon: False,
     )
@@ -199,56 +200,32 @@ fn update(model: Model, msg: Msg) -> Model {
         naam: model.naam,
         emailadresgebruikt: model.emailadresgebruikt,
       )
-    AnswerredMsg(answer) ->
-      case model.pad, answer {
+    AnswerredMsg(antwoord) -> {
+      let volgende = case model.pad, antwoord {
+        // Als de gebruiker op de startpagina zit en het openingsformulier is ingevuld, ga naar stap 1 (0)
         -1, _ -> {
-          let moment_van_mailen =
-            model.datum_gemaild
-            |> option.unwrap(datum_vandaag())
-            |> datum_terug_op_volgorde()
-            |> birl.from_naive()
-            |> result.unwrap(birl.now())
-            |> datum_als_gesproken()
-          let te_zeggen =
-            begroeting()
-            <> ". U spreekt met "
-            <> model.naam |> option.unwrap("[naam]")
-            <> ". Ik ben student op "
-            <> model.schoolnaam |> option.unwrap("[schoolnaam]")
-            <> " en heb uw bedrijf "
-            <> moment_van_mailen
-            <> " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?"
-
-          let antwoorden_daarop = [
-            #("Ja", 1),
-            #("Nee", 2),
-            #("Weet ik niet", 3),
-          ]
+          0
+        }
+        // Zo niet, ga naar de volgende stap
+        _, a -> a
+      }
+      case stappen() |> dict.get(volgende) {
+        // Als de volgende stap bestaat, voer hem in het model in
+        Ok(stap) -> {
           Model(
             ..model,
-            pad: 0,
-            huidig_script: te_zeggen,
-            antwoord_opties: antwoorden_daarop,
+            pad: volgende,
+            huidig_script: stap.script_text(model),
+            antwoord_opties: stap.antwoord_opties,
+            ballon: True,
           )
         }
-        0, a -> {
-          case a {
-            // Ja
-            1 ->
-              Model(
-                ..model,
-                huidig_script: "Ik heb geen reactie ontvangen. Kunt u mij vertellen wat de status is?",
-                antwoord_opties: [
-                  #("Wij hebben geen stageplaatsen", 1),
-                  #("Er wordt nog naar gekeken", 2),
-                ],
-                pad: 1,
-              )
-            _ -> uh_oh
-          }
+        // Als de volgende stap niet bestaat, uh-oh
+        Error(_) -> {
+          uh_oh
         }
-        _, _ -> uh_oh
       }
+    }
     EmailAdressFilledInMsg(mail) ->
       Model(..model, emailadresgebruikt: Some(mail))
     SchoolFilledInMsg(schoolname) ->
@@ -288,17 +265,30 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
             ],
             [],
           ),
-          case model.ballon {
-            True -> {
+          case model.ballon, model.huidig_script {
+            True, [tekst] -> {
               html.div([attribute.class("chat-end chat")], [
-                html.div([attribute.class("chat-bubble")], [
-                  element.text(model.huidig_script),
-                ]),
+                html.div([attribute.class("chat-bubble")], [element.text(tekst)]),
               ])
             }
-            False ->
+            True, teksten -> {
+              html.div([attribute.class("chat-end chat")], [
+                html.div(
+                  [attribute.class("chat-bubble")],
+                  list.map(teksten, fn(tekst) {
+                    html.button(
+                      [attribute.class("join-item btn btn-xs rounded-lg")],
+                      [element.text(tekst)],
+                    )
+                  }),
+                ),
+              ])
+            }
+            False, [tekst] ->
+              html.div([attribute.class("")], [element.text(tekst)])
+            _, _ ->
               html.div([attribute.class("")], [
-                element.text(model.huidig_script),
+                element.text("uh-oh, onbekende fout."),
               ])
           },
           html.div([attribute.class("chat-start chat")], [
@@ -502,9 +492,9 @@ fn begroeting() {
 
 fn afscheid() {
   case birl.now() |> birl.weekday() {
-    birl.Mon | birl.Tue | birl.Wed | birl.Thu -> "Fijne dag"
-    birl.Fri -> "Fijn weekend"
-    _ -> "Fijne rest van uw weekend"
+    birl.Mon | birl.Tue | birl.Wed | birl.Thu -> "fijne dag"
+    birl.Fri -> "fijn weekend"
+    _ -> "fijne rest van uw weekend"
   }
 }
 
@@ -563,7 +553,156 @@ fn datum_als_gesproken(datum: birl.Time) {
   }
 }
 
-// Miscelaneous functions ---------------------------------------------------------------------
+fn volgende_werkdag() {
+  let dow = birl.weekday(birl.now())
+  case dow {
+    birl.Mon -> "dinsdag"
+    birl.Thu -> "vrijdag"
+    birl.Tue -> "woensdag"
+    birl.Wed -> "donderdag"
+    _ -> "maandag"
+  }
+}
+
+// Script steps ----------------------------------------------------------------------------
+type Step {
+  Step(
+    script_text: fn(Model) -> List(String),
+    antwoord_opties: List(#(String, Int)),
+  )
+}
+
+fn stappen() {
+  dict.new()
+  |> dict.insert(
+    0,
+    Step(
+      fn(model) {
+        let moment_van_mailen =
+          model.datum_gemaild
+          |> option.unwrap(datum_vandaag())
+          |> datum_terug_op_volgorde()
+          |> birl.from_naive()
+          |> result.unwrap(birl.now())
+          |> datum_als_gesproken()
+        [
+          begroeting()
+          <> ". U spreekt met "
+          <> model.naam |> option.unwrap("[naam]")
+          <> ". Ik ben student op "
+          <> model.schoolnaam |> option.unwrap("[schoolnaam]")
+          <> " en heb uw bedrijf "
+          <> moment_van_mailen
+          <> " per email benaderd. Kunt u mij vertellen of deze email is ontvangen?",
+        ]
+      },
+      [#("Ja", 1), #("Nee", 2), #("Ik weet het niet", 3)],
+    ),
+  )
+  |> dict.insert(
+    1,
+    Step(
+      fn(_model) {
+        [
+          "Ik heb geen reactie ontvangen. Kunt u mij vertellen wat de status is?",
+        ]
+      },
+      [#("We hebben geen stageplaatsen.", 7), #("Er wordt over nagedacht.", 8)],
+    ),
+  )
+  |> dict.insert(
+    2,
+    Step(
+      fn(model) {
+        [
+          "Oh dat is spijtig, mogelijk heb ik niet het juiste emailadres gebruikt?",
+          "Kan ik mijn brief opnieuw sturen? Kunt u mij het adres noemen?",
+        ]
+      },
+      [#("Ja", 9), #("Nee", 7)],
+    ),
+  )
+  |> dict.insert(
+    3,
+    Step(
+      fn(_model) {
+        [
+          "Mogelijk is het een idee dat ik mijn brief opnieuw stuur? Kan ik een specifieke persoon sturen?",
+        ]
+      },
+      [#("Ja het adres is [...]", 5), #("Nee we hebben geen ruimte", 7)],
+    ),
+  )
+  |> dict.insert(
+    4,
+    Step(
+      fn(_model) {
+        [
+          "Dat is prima, ik zal "
+          <> volgende_werkdag()
+          <> " contact opnemen om te vragen of mijn mail is ontvangen.",
+        ]
+      },
+      [],
+    ),
+  )
+  |> dict.insert(
+    5,
+    Step(
+      fn(_model) {
+        [
+          "*noteer het emailadres in de notities* Dan zal ik daar mijn brief naar toe mailen.",
+        ]
+      },
+      [#("*adres genoteerd*", 6)],
+    ),
+  )
+  |> dict.insert(
+    6,
+    Step(
+      fn(_model) {
+        [
+          "Hartelijk dank, mag ik u maandag bellen of mijn mail in goede orde is ontvangen?",
+        ]
+      },
+      [#("Ja", 4), #("Nee, wij nemen contact op.", 10)],
+    ),
+  )
+  |> dict.insert(
+    7,
+    Step(
+      fn(_model) {
+        [
+          "Dat is jammer, ik zal mijn zoektocht voortzetten. Bedankt voor uw tijd, dan wens ik u vast een fijn"
+          <> afscheid(),
+        ]
+      },
+      [],
+    ),
+  )
+  |> dict.insert(
+    8,
+    Step(
+      fn(_model) {
+        [
+          "Kan ik u nog van aanvullende informatie voorzien?",
+          "Wanneer kan ik een reactie verwachten?",
+        ]
+      },
+      [#("... datum of tijd ...", 10)],
+    ),
+  )
+  |> dict.insert(
+    9,
+    Step(fn(_model) { ["Hartelijk dank, tot " <> volgende_werkdag()] }, []),
+  )
+  |> dict.insert(
+    10,
+    Step(fn(_model) { ["Dan wacht ik dat af, dank u wel."] }, []),
+  )
+}
+
+// Miscelaneous functions ------------------------------------------------------------------
 
 fn willekeurige_naam() {
   [
