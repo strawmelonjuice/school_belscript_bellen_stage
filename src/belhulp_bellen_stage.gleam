@@ -673,7 +673,7 @@ fn stappen() {
     Step(
       fn(_model) {
         [
-          "Dat is jammer, ik zal mijn zoektocht voortzetten. Bedankt voor uw tijd, dan wens ik u vast een fijn"
+          "Dat is jammer, ik zal mijn zoektocht voortzetten. Bedankt voor uw tijd, dan wens ik u vast een "
           <> afscheid(),
         ]
       },
