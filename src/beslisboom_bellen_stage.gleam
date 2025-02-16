@@ -193,7 +193,12 @@ fn update(model: Model, msg: Msg) -> Model {
     NameFilledInMsg(naam) -> Model(..model, naam: Some(naam))
     DateFilledInMsg(datum_gemaild) ->
       Model(..model, datum_gemaild: Some(datum_gemaild))
-    GebruikerResetMsg -> clean_model
+    GebruikerResetMsg ->
+      Model(
+        ..clean_model,
+        naam: model.naam,
+        emailadresgebruikt: model.emailadresgebruikt,
+      )
     AnswerredMsg(answer) ->
       case model.pad, answer {
         -1, _ -> {
@@ -277,7 +282,7 @@ fn view(model: Model, store: storage.Storage) -> Element(Msg) {
             // floating button to reset the form
             [
               attribute.class(
-                "absolute top-2 right-2 h-[6vh] w-[6vh] m-2 btn btn-circle btn-sm  btn-warning fa-solid fa-rotate-left text-lg",
+                "fixed bottom-8 right-2 h-[6vh] w-[6vh] m-2 btn btn-circle btn-sm  btn-warning fa-solid fa-rotate-left text-lg",
               ),
               event.on_click(GebruikerResetMsg),
             ],
@@ -345,7 +350,9 @@ fn view_start(model: Model) {
           html.input([
             attribute.placeholder(willekeurige_naam()),
             attribute.id("naam"),
-            attribute.class("w-full input input-bordered"),
+            attribute.class(
+              "w-full input input-bordered placeholder:text-opacity-30 placeholder:text-neutral-300",
+            ),
             attribute.type_("name"),
             attribute.value({ model.naam |> option.unwrap("") }),
             event.on_input(NameFilledInMsg),
@@ -357,7 +364,9 @@ fn view_start(model: Model) {
             element.text("Wanneer heb je dit bedrijf gemaild?"),
             html.input([
               attribute.id("datum_gemaild"),
-              attribute.class("w-full input input-bordered"),
+              attribute.class(
+                "w-full input input-bordered placeholder:text-neutral-300 placeholder:text-opacity-30",
+              ),
               attribute.type_("date"),
               attribute.placeholder(datum_vandaag()),
               attribute.value({ model.datum_gemaild |> option.unwrap("") }),
@@ -371,7 +380,9 @@ fn view_start(model: Model) {
             element.text("Met welk adres heb je gemaild?"),
             html.input([
               attribute.id("mail_gebruikt"),
-              attribute.class("w-full input input-bordered"),
+              attribute.class(
+                "w-full input input-bordered placeholder:text-neutral-300 placeholder:text-opacity-30",
+              ),
               attribute.type_("mail"),
               attribute.placeholder("jij@jouwschool-edu.nl"),
               attribute.value({ model.emailadresgebruikt |> option.unwrap("") }),
@@ -385,7 +396,9 @@ fn view_start(model: Model) {
             element.text("Op welke school zit je?"),
             html.input([
               attribute.id("mail_gebruikt"),
-              attribute.class("w-full input input-bordered"),
+              attribute.class(
+                "w-full input input-bordered placeholder:text-neutral-300 placeholder:text-opacity-30",
+              ),
               attribute.type_("text"),
               attribute.value({
                 model.schoolnaam |> option.unwrap("het Koning Willem I College")
@@ -434,7 +447,7 @@ fn view_start(model: Model) {
 fn view_notepad(model: Model) {
   html.section(
     [
-      attribute.class("absolute top-2 left-2 w-fit"),
+      attribute.class("fixed bottom-8 left-2 w-fit"),
       event.on_mouse_leave(NoteCloseMsg),
     ],
     [
