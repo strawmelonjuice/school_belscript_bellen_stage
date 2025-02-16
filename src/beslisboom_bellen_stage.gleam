@@ -447,14 +447,14 @@ fn view_start(model: Model) {
 fn view_notepad(model: Model) {
   html.section(
     [
-      attribute.class("fixed bottom-8 left-2 w-fit"),
+      attribute.class("fixed bottom-8 left-2 w-fit z-[300]"),
       event.on_mouse_leave(NoteCloseMsg),
     ],
     [
       html.span(
         [
           attribute.class(
-            "h-[6vh] w-[6vh] m-2 btn btn-circle btn-xs  btn-warning fa-solid fa-sticky-note text-lg z-[100] ",
+            "h-[6vh] w-[6vh] m-2 btn btn-circle btn-xs  btn-warning fa-solid fa-sticky-note text-lg z-[300] ",
           ),
           event.on_click(NoteToggleMsg),
         ],
